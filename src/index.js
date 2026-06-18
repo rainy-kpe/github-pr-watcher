@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { exec } = require("child_process");
+const { spawn } = require("child_process");
 const dotenv = require("dotenv");
 const notifier = require("node-notifier");
 const { Octokit } = require("@octokit/rest");
@@ -160,20 +160,22 @@ function openUrlInBrowser(url) {
     return;
   }
 
-  const safeUrl = url.replace(/"/g, '""');
-  const commandByPlatform = {
-    win32: `start "" "${safeUrl}"`,
-    darwin: `open "${safeUrl}"`,
-    linux: `xdg-open "${safeUrl}"`,
-  };
+  let child;
+  if (process.platform === "win32") {
+    child = spawn("cmd", ["/c", "start", "", url], {
+      detached: true,
+      stdio: "ignore",
+    });
+  } else if (process.platform === "darwin") {
+    child = spawn("open", [url], { detached: true, stdio: "ignore" });
+  } else {
+    child = spawn("xdg-open", [url], { detached: true, stdio: "ignore" });
+  }
 
-  const command =
-    commandByPlatform[process.platform] || commandByPlatform.win32;
-  exec(command, (error) => {
-    if (error) {
-      console.warn(`Could not open browser for URL ${url}:`, error.message);
-    }
+  child.on("error", (error) => {
+    console.warn(`Could not open browser for URL ${url}:`, error.message);
   });
+  child.unref();
 }
 
 function notify(appName, title, message, urlToOpen) {
@@ -183,7 +185,7 @@ function notify(appName, title, message, urlToOpen) {
       message,
       appName,
       wait: Boolean(urlToOpen),
-      timeout: 5,
+      timeout: urlToOpen ? undefined : 5,
     },
     (error, response, metadata) => {
       if (error || !urlToOpen) {
@@ -589,23 +591,20 @@ async function checkRepository({
 }
 
 async function runOnce(config, state) {
-  const noop = () => {};
-  const octokitOptions = {
-    auth: config.githubToken,
-    log: DEBUG
-      ? console
-      : {
-          debug: noop,
-          info: noop,
-          warn: noop,
-          error: console.error,
-        },
-  };
+  const octokitOptions = { auth: config.githubToken };
   if (config.githubApiBaseUrl) {
     octokitOptions.baseUrl = config.githubApiBaseUrl;
   }
 
   const octokit = new Octokit(octokitOptions);
+
+  if (!DEBUG) {
+    const noop = () => {};
+    octokit.log.debug = noop;
+    octokit.log.info = noop;
+    octokit.log.warn = noop;
+    octokit.log.error = noop;
+  }
 
   try {
     await octokit.users.getAuthenticated();

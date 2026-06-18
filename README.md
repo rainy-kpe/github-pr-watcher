@@ -33,7 +33,7 @@ Node.js app that monitors pull requests across one or more GitHub repositories a
    - `GITHUB_API_BASE_URL`: set only for GitHub Enterprise Server (for example `https://github.company.com/api/v3`)
    - `REPOSITORIES`: comma-separated `owner/repo` list
    - Optional tuning:
-     - `POLL_INTERVAL_SECONDS` (default 30, minimum 10)
+     - `POLL_INTERVAL_SECONDS` (default 60, minimum 10)
      - `STATE_FILE` (default `./state/watcher-state.json`)
      - `NOTIFY_ON_STARTUP` (`false` by default)
      - `APP_NAME` notification app name
