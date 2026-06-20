@@ -30,7 +30,9 @@ async function fetchWithETag(octokit, endpoint, params, cacheKey) {
     throw error;
   }
 
-  let allData = Array.isArray(firstResponse.data) ? [...firstResponse.data] : [];
+  let allData = Array.isArray(firstResponse.data)
+    ? [...firstResponse.data]
+    : [];
   const etag = firstResponse.headers?.etag || null;
 
   let linkHeader = firstResponse.headers?.link || "";
@@ -282,6 +284,7 @@ async function fetchOpenPullRequests(octokit, owner, repo) {
     number: pr.number,
     title: pr.title,
     html_url: pr.html_url,
+    author: pr.user ? pr.user.login : "unknown",
     created_at: toIsoOrNull(pr.created_at),
     updated_at: toIsoOrNull(pr.updated_at),
     issue_comment_count: Number(pr.comments || 0),
@@ -475,7 +478,7 @@ async function checkRepository({
     const isApproved = hasActiveApproval(allReviews);
     const prLink = `\x1b]8;;${pr.html_url}\x1b\\${repoKey} #${pr.number}\x1b]8;;\x1b\\`;
     console.log(
-      `${isApproved ? "[APPROVED]" : "[WAITING]"} | ${prLink} | ${trimText(pr.title, 120)}`,
+      `${isApproved ? "[APPROVED]" : "[WAITING] "} | ${prLink} | ${pr.author} | ${trimText(pr.title, 120)}`,
     );
 
     if (!repoState.notifiedCommentIdsByPr[prKey]) {
