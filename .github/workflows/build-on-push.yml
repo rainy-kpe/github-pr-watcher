@@ -24,3 +24,13 @@ jobs:
 
       - name: Build
         run: dotnet build src/GithubWatcher.Desktop/GithubWatcher.Desktop.csproj --configuration Release --no-restore
+
+      - name: Publish
+        run: dotnet publish src/GithubWatcher.Desktop/GithubWatcher.Desktop.csproj --configuration Release --no-build --output artifacts/GithubWatcher.Desktop
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GithubWatcher.Desktop
+          path: artifacts/GithubWatcher.Desktop
+          if-no-files-found: error
