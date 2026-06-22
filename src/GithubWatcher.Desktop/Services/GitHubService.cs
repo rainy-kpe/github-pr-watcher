@@ -120,7 +120,9 @@ public sealed class GitHubService : IDisposable
                 Title = pr.Title ?? "(no title)",
                 Author = pr.User?.Login ?? "unknown",
                 Url = pr.HtmlUrl ?? $"https://github.com/{owner}/{repo}/pull/{pr.Number}",
+                CreatedAt = pr.CreatedAt,
                 UpdatedAt = pr.UpdatedAt,
+                MergedAt = pr.MergedAt,
                 CommentCount = commentCount,
                 IsApproved = isApproved,
             });
@@ -254,6 +256,12 @@ public sealed class GitHubService : IDisposable
 
         [JsonPropertyName("updated_at")]
         public DateTimeOffset UpdatedAt { get; init; }
+
+        [JsonPropertyName("created_at")]
+        public DateTimeOffset CreatedAt { get; init; }
+
+        [JsonPropertyName("merged_at")]
+        public DateTimeOffset? MergedAt { get; init; }
 
         [JsonPropertyName("user")]
         public UserResponse? User { get; init; }

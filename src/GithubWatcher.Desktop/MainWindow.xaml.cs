@@ -33,7 +33,9 @@ public partial class MainWindow : Window
                 Title = "Improve onboarding docs for first-time contributors",
                 Author = "octocat",
                 Url = "https://github.com/octocat/Hello-World/pull/101",
+                CreatedAt = DateTimeOffset.Now.AddDays(-5),
                 UpdatedAt = DateTimeOffset.Now,
+                MergedAt = null,
                 CommentCount = 4,
                 IsApproved = false,
             });
@@ -45,7 +47,9 @@ public partial class MainWindow : Window
                 Title = "Refactor HTTP handler pipeline to reduce allocations",
                 Author = "davidfowl",
                 Url = "https://github.com/dotnet/runtime/pull/202",
+                CreatedAt = DateTimeOffset.Now.AddDays(-3),
                 UpdatedAt = DateTimeOffset.Now.AddMinutes(-20),
+                MergedAt = null,
                 CommentCount = 12,
                 IsApproved = true,
             });
@@ -57,7 +61,9 @@ public partial class MainWindow : Window
                 Title = "Add support for compact command palette layout",
                 Author = "aeschli",
                 Url = "https://github.com/microsoft/vscode/pull/303",
+                CreatedAt = DateTimeOffset.Now.AddDays(-1),
                 UpdatedAt = DateTimeOffset.Now.AddHours(-2),
+                MergedAt = null,
                 CommentCount = 2,
                 IsApproved = false,
             });

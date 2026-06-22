@@ -7,7 +7,9 @@ public sealed class PullRequestInfo
     public required string Title { get; init; }
     public required string Author { get; init; }
     public required string Url { get; init; }
+    public required DateTimeOffset CreatedAt { get; init; }
     public required DateTimeOffset UpdatedAt { get; init; }
+    public required DateTimeOffset? MergedAt { get; init; }
     public required int CommentCount { get; init; }
     public required bool IsApproved { get; init; }
 

@@ -23,6 +23,7 @@ public partial class App : System.Windows.Application
     private DispatcherTimer? _pollTimer;
     private Icon? _currentIcon;
     private readonly Dictionary<string, int> _knownCommentCounts = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, (DateTimeOffset CreatedAt, DateTimeOffset? MergedAt)> _knownPrStates = new(StringComparer.OrdinalIgnoreCase);
     private UserPreferenceChangedEventHandler? _userPreferenceChangedHandler;
     private bool _pollInProgress;
 
@@ -117,6 +118,7 @@ public partial class App : System.Windows.Application
             AppLogger.Log($"Polling completed. Open PR count: {prs.Count}");
             UpdateTrayCount(prs.Count);
             await NotifyOnNewCommentsAsync(prs, _cts.Token);
+            await NotifyOnPrStateChangeAsync(prs);
             _mainWindow.UpdateItems(prs);
         }
         catch (OperationCanceledException)
@@ -200,7 +202,8 @@ public partial class App : System.Windows.Application
     {
         _config = AppConfig.Load();
         _knownCommentCounts.Clear();
-        AppLogger.Log("Configuration loaded and comment count baseline cleared");
+        _knownPrStates.Clear();
+        AppLogger.Log("Configuration loaded and tracking data cleared");
 
         _gitHubService?.Dispose();
         _gitHubService = new GitHubService(_config.GitHubToken);
@@ -291,6 +294,83 @@ public partial class App : System.Windows.Application
         foreach (var pr in prs)
         {
             _knownCommentCounts[pr.Url] = pr.CommentCount;
+        }
+    }
+
+    private async Task NotifyOnPrStateChangeAsync(IReadOnlyList<PullRequestInfo> openPrs)
+    {
+        if (_notifyIcon is null)
+        {
+            return;
+        }
+
+        // Detect newly opened PRs (in openPrs but not in _knownPrStates)
+        var newlyOpenedPrs = new List<PullRequestInfo>();
+        foreach (var pr in openPrs)
+        {
+            if (!_knownPrStates.ContainsKey(pr.Url))
+            {
+                newlyOpenedPrs.Add(pr);
+            }
+        }
+
+        // Detect merged PRs (in _knownPrStates but not in openPrs)
+        var newlyMergedPrs = new List<(string Url, PullRequestInfo? Info)>();
+        foreach (var knownUrl in _knownPrStates.Keys.ToList())
+        {
+            if (!openPrs.Any(pr => pr.Url == knownUrl))
+            {
+                // This PR is no longer in the open list, so it was merged/closed
+                // Try to find it in the current list to get its info
+                var prInfo = openPrs.FirstOrDefault(pr => pr.Url == knownUrl);
+                newlyMergedPrs.Add((knownUrl, prInfo));
+            }
+        }
+
+        // Update known states for currently open PRs
+        foreach (var pr in openPrs)
+        {
+            _knownPrStates[pr.Url] = (pr.CreatedAt, pr.MergedAt);
+        }
+
+        // Show notifications
+        if (newlyOpenedPrs.Count > 0)
+        {
+            var firstNewPr = newlyOpenedPrs[0];
+            new ToastContentBuilder()
+                .SetProtocolActivation(new Uri(firstNewPr.Url))
+                .AddText(newlyOpenedPrs.Count == 1
+                    ? $"New PR: {firstNewPr.RepositoryName} #{firstNewPr.Number}"
+                    : $"{newlyOpenedPrs.Count} new PRs opened")
+                .AddText($"by {firstNewPr.Author}: {firstNewPr.Title}")
+                .Show();
+
+            AppLogger.Log($"Notification shown for {newlyOpenedPrs.Count} newly opened PR(s)");
+        }
+
+        if (newlyMergedPrs.Count > 0)
+        {
+            var firstMergedItem = newlyMergedPrs[0];
+            var displayUrl = firstMergedItem.Info?.Url ?? firstMergedItem.Url;
+            var displayTitle = firstMergedItem.Info?.Title ?? "PR";
+            var displayRepo = firstMergedItem.Info?.RepositoryName ?? "unknown";
+            var displayNumber = firstMergedItem.Info?.Number ?? 0;
+
+            new ToastContentBuilder()
+                .SetProtocolActivation(new Uri(displayUrl))
+                .AddText(newlyMergedPrs.Count == 1
+                    ? $"PR merged: {displayRepo} #{displayNumber}"
+                    : $"{newlyMergedPrs.Count} PRs merged")
+                .AddText(displayTitle)
+                .Show();
+
+            AppLogger.Log($"Notification shown for {newlyMergedPrs.Count} merged PR(s)");
+
+            // Remove merged PRs from tracking
+            foreach (var (url, _) in newlyMergedPrs)
+            {
+                _knownPrStates.Remove(url);
+            }
         }
     }
 
