@@ -1,77 +1,50 @@
-# GitHub PR Watcher (Windows Notifications)
+# GitHub PR Watcher Desktop (.NET 10)
 
-Node.js app that monitors pull requests across one or more GitHub repositories and shows a Windows notification when:
+Windows desktop tray application that monitors open GitHub pull requests.
 
-- A new PR is created
-- A PR is closed
-- A new comment is added to a PR (issue-thread or review comment)
-- A PR is approved
+Features:
+
+- Tray icon badge showing current open PR count
+- Click tray icon to open a window listing open PRs
+- Double-click a PR row (or use Open PR button) to open it in browser
+- Polling with conditional requests (`ETag` / `If-None-Match`) for faster refresh
 
 ## Requirements
 
-- Node.js 18+
-- Windows (for native notifications)
-- GitHub personal access token
+- Windows
+- .NET 10 SDK
+- GitHub token (fine-grained or classic)
 
 ## Setup
 
-1. Install dependencies:
+1. Create `.env` from example:
 
-   ```bash
-   npm install
+   ```powershell
+   Copy-Item .env.example .env
    ```
 
-2. Create `.env` from example:
+2. Edit `.env`:
+   - `GITHUB_TOKEN` or `GITHUB_CLASSIC_TOKEN`
+   - `REPOSITORIES` as comma-separated `owner/repo`
+   - optional `GITHUB_API_BASE_URL` for GitHub Enterprise Server
+   - optional `POLL_INTERVAL_SECONDS` (default 60, minimum 10)
 
-   ```bash
-   copy .env.example .env
-   ```
+3. Run the app:
 
-3. Edit `.env`:
-   - `GITHUB_TOKEN`: your GitHub token (fine-grained or classic)
-   - `GITHUB_CLASSIC_TOKEN`: optional alias for classic PAT if you prefer not to use `GITHUB_TOKEN`
-   - `GITHUB_API_BASE_URL`: set only for GitHub Enterprise Server (for example `https://github.company.com/api/v3`)
-   - `REPOSITORIES`: comma-separated `owner/repo` list
-   - Optional tuning:
-     - `POLL_INTERVAL_SECONDS` (default 60, minimum 10)
-     - `STATE_FILE` (default `./state/watcher-state.json`)
-     - `NOTIFY_ON_STARTUP` (`false` by default)
-     - `APP_NAME` notification app name
-
-4. Start watcher:
-
-   ```bash
-   npm start
+   ```powershell
+   dotnet run --project src/GithubWatcher.Desktop/GithubWatcher.Desktop.csproj
    ```
 
 ## Notes
 
-- The app stores local state in `state/watcher-state.json` to avoid duplicate notifications.
-- On the first run, notifications are suppressed by default for existing PRs/comments.
-- If you set `NOTIFY_ON_STARTUP=true`, notifications may be shown for existing events.
-- Clicking a notification opens the related PR in your default browser.
-- On each polling cycle, the console logs each open PR with approval status and total comments.
+- Closing the PR window hides it to tray; use tray menu Exit to quit.
+- Tray icon badge caps at `99+`.
+- Token precedence: `GITHUB_TOKEN` first, then `GITHUB_CLASSIC_TOKEN`.
 
 ## Token permissions
 
-For private repositories, make sure token includes read access for:
+For private repos, token needs read access to:
 
 - Pull requests
 - Issues
 - Metadata
-
-Classic PAT guidance:
-
-- Private repos: `repo` scope
-- Public repos only: `public_repo` scope
-- If organization uses SSO, authorize the token for that organization
-
-## Troubleshooting 404 Not Found
-
-If all repositories return `404 Not Found`, one of these is usually true:
-
-- Repository `owner/repo` value is incorrect
-- Token does not have access to the private repository
-- GitHub Enterprise API URL is not configured (`GITHUB_API_BASE_URL`)
-
-For fine-grained tokens, ensure the token is granted access to each repository listed in `REPOSITORIES`.

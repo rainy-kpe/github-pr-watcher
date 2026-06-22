@@ -1,3 +1,12 @@
-node_modules/
 .env
-state/
+
+# Node.js leftovers
+node_modules/
+
+# .NET build output
+bin/
+obj/
+.vs/
+*.user
+*.suo
+state
