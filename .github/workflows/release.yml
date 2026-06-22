@@ -33,6 +33,7 @@ jobs:
         run: dotnet build src/GithubWatcher.Desktop/GithubWatcher.Desktop.csproj --configuration Release --no-restore
 
       - name: Create and push tag
+        id: tag
         shell: pwsh
         run: |
           $version = "${{ inputs.version }}"
@@ -43,21 +44,32 @@ jobs:
           $tag = "v$version"
           git fetch --tags
 
+          $tagExists = $false
           if (git rev-parse $tag 2>$null) {
-            throw "Tag '$tag' already exists."
+            $tagExists = $true
+            Write-Host "Tag '$tag' already exists. Skipping tag creation."
+          }
+          else {
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+            git tag $tag
+            git push origin $tag
           }
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git tag $tag
-          git push origin $tag
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "tag_exists=$($tagExists.ToString().ToLower())" >> $env:GITHUB_OUTPUT
 
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $version = "${{ inputs.version }}"
-          $tag = "v$version"
-          gh release create $tag --title "Release $tag" --generate-notes
+          $tag = "${{ steps.tag.outputs.tag }}"
+
+          if (gh release view $tag *> $null) {
+            Write-Host "Release '$tag' already exists. Skipping release creation."
+          }
+          else {
+            gh release create $tag --title "Release $tag" --generate-notes
+          }
