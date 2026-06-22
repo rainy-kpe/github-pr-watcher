@@ -32,44 +32,14 @@ jobs:
       - name: Build
         run: dotnet build src/GithubWatcher.Desktop/GithubWatcher.Desktop.csproj --configuration Release --no-restore
 
-      - name: Create and push tag
-        id: tag
-        shell: pwsh
-        run: |
-          $version = "${{ inputs.version }}"
-          if ([string]::IsNullOrWhiteSpace($version)) {
-            throw "Version is required."
-          }
+      - name: Publish
+        run: dotnet publish src/GithubWatcher.Desktop/GithubWatcher.Desktop.csproj --configuration Release --no-build --output artifacts/GithubWatcher.Desktop
 
-          $tag = "v$version"
-          git fetch --tags
-
-          $tagExists = $false
-          if (git rev-parse $tag 2>$null) {
-            $tagExists = $true
-            Write-Host "Tag '$tag' already exists. Skipping tag creation."
-          }
-          else {
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-            git tag $tag
-            git push origin $tag
-          }
-
-          "tag=$tag" >> $env:GITHUB_OUTPUT
-          "tag_exists=$($tagExists.ToString().ToLower())" >> $env:GITHUB_OUTPUT
-
-      - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: pwsh
-        run: |
-          $tag = "${{ steps.tag.outputs.tag }}"
-
-          if (gh release view $tag *> $null) {
-            Write-Host "Release '$tag' already exists. Skipping release creation."
-          }
-          else {
-            gh release create $tag --title "Release $tag" --generate-notes
-          }
+      - name: Create or update GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: Release v${{ inputs.version }}
+          generate_release_notes: true
+          files: |
+            artifacts/GithubWatcher.Desktop/**
