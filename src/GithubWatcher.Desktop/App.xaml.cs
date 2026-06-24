@@ -416,19 +416,26 @@ public partial class App : System.Windows.Application
             finally { DestroyIcon(hIconBase); }
         }
 
-        using var background = new SolidBrush(Color.FromArgb(220, Color.FromArgb(198, 40, 40)));
-        graphics.FillEllipse(background, 8, 0, 23, 23);
-
-        var text = count > 99 ? "99+" : count.ToString();
-        using var font = new Font("Segoe UI", text.Length > 2 ? 16.0f : 20.0f, FontStyle.Bold, GraphicsUnit.Pixel);
+        var text = count > 9 ? ">9" : count.ToString();
+        using var font = new Font("Segoe UI", 24.0f, FontStyle.Bold, GraphicsUnit.Pixel);
         using var textBrush = new SolidBrush(Color.White);
-        var layout = new RectangleF(8, 0, 24, 24);
+        using var shadowBrush = new SolidBrush(Color.Black);
+        var layout = new RectangleF(0, 0, 32, 32);
         var format = new StringFormat
         {
             Alignment = StringAlignment.Center,
             LineAlignment = StringAlignment.Center,
         };
 
+        layout.Offset(1, 0);
+        graphics.DrawString(text, font, shadowBrush, layout, format);
+        layout.Offset(-2, 0);
+        graphics.DrawString(text, font, shadowBrush, layout, format);
+        layout.Offset(1, 1);
+        graphics.DrawString(text, font, shadowBrush, layout, format);
+        layout.Offset(0, -2);
+        graphics.DrawString(text, font, shadowBrush, layout, format);
+        layout.Offset(0, 1);
         graphics.DrawString(text, font, textBrush, layout, format);
 
         var hIcon = bitmap.GetHicon();
